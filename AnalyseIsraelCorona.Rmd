@@ -1,0 +1,172 @@
+---
+title: "VaccinationWorking"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(readr)
+library(tidyr)
+corona_medical_staff <- read_csv("corona_medical_staff_ver_0072.csv")
+corona_medical_staff <- corona_medical_staff %>% mutate(confirmed_cases_physicians=as.numeric(confirmed_cases_physicians))
+corona_medical_staff <- corona_medical_staff %>% mutate(confirmed_cases_nurses=as.numeric(confirmed_cases_nurses))
+corona_medical_staff <- corona_medical_staff %>% mutate(confirmed_cases_other_healthcare_workers=as.numeric(confirmed_cases_other_healthcare_workers))
+corona_medical_staff <- corona_medical_staff %>% mutate(isolated_other_healthcare_workers=as.numeric(isolated_other_healthcare_workers))
+corona_medical_staff <- corona_medical_staff %>% mutate(isolated_nurses=as.numeric(isolated_nurses))
+corona_medical_staff <- corona_medical_staff %>% mutate(isolated_physicians=as.numeric(isolated_physicians))
+
+corona_medical_staff <- corona_medical_staff %>% pivot_longer(cols = starts_with("confirmed_cases"),names_to = "occupation",values_to = "cases")
+
+corona_medical_staff <- corona_medical_staff %>% mutate(Date=as.Date(Date))
+
+urlfile="https://raw.githubusercontent.com/dancarmoz/israel_moh_covid_dashboard_data/master/isolated_staff.csv"
+corona_medical_staff_fromGithub <- read_csv(urlfile) 
+corona_medical_staff_fromGithub <- corona_medical_staff_fromGithub %>% pivot_longer(cols = -Date,names_to = "group",values_to = "cases")
+
+
+corona_hospitalization_ver_00187 <- read_csv("corona_hospitalization_ver_00189.csv")
+
+columnNamesInEnglish<-  c("Date","Hospitalized","Percent of women","Average age hospitalized","SD of hospitalization age","Respirators","Percent of women on respirators","Average age one respirators","SD of age on respirators","Patients with mild symptoms","Percent patients with mild symptoms that are women","Average age of patients with mild symptoms","SD of mild patients","Patients with medium symptoms","Percent patients with medium symptoms that are women","Average age of patients with medium symptoms","SD of medium patients","Patients with serious symptoms","Percent patients with serious symptoms that are women","Average age of patients with serious symptoms","SD of serious patients","Cumulative patients with serious symptoms")
+
+corona_hospitalization <- corona_hospitalization_ver_00187 %>%  setNames(columnNamesInEnglish) %>% mutate_if(is.character, as.numeric)
+  
+
+urlfile="https://raw.githubusercontent.com/dancarmoz/israel_moh_covid_dashboard_data/master/deaths_ages_dists.csv"
+urlfile="https://raw.githubusercontent.com/dancarmoz/israel_moh_covid_dashboard_data/master/severe_ages_dists.csv"
+severe_ages_dists<-read_csv(urlfile,skip = 1)  
+
+severe_ages_dists2 <- severe_ages_dists %>% mutate(Date=`Update Time`) %>% select(Date,`0-9`,`10-19`,`20-29`,`30-39`,`40-49`,`50-59`,`60-69`,`70-79`,`80-89`,`90+`) %>% mutate(total= rowSums(.[2:11]))
+
+severe_ages_dists_relative <- severe_ages_dists2 %>% mutate(`0-9`=100*`0-9`/total) %>% mutate(`10-19`=100*`10-19`/total) %>% mutate(`20-29`=100*`20-29`/total) %>% mutate(`30-39`=100*`30-39`/total)%>% mutate(`40-49`=100*`40-49`/total)%>% mutate(`50-59`=100*`50-59`/total)%>% mutate(`60-69`=100*`60-69`/total)%>% mutate(`70-79`=100*`70-79`/total)%>% mutate(`80-89`=100*`80-89`/total)%>% mutate(`90+`=100*`90+`/total) %>% pivot_longer(cols = c(-Date,-total),names_to = "group",values_to = "severe cases") %>% mutate(Date=as.Date(Date))
+
+severe_ages_dists2 <-severe_ages_dists2 %>% pivot_longer(cols = c(-Date),names_to = "group",values_to = "severe cases") %>% mutate(Date=as.Date(Date))
+
+urlfile="https://raw.githubusercontent.com/dancarmoz/israel_moh_covid_dashboard_data/master/vaccinated_by_age.csv"
+vaccinated<-read_csv(urlfile) 
+
+vaccinated <- vaccinated %>% mutate(percent90first=`90+ first dose`/`90+ pop`)
+vaccinated <- vaccinated %>% mutate(percent90second=`90+ second dose`/`90+ pop`)
+vaccinated <- vaccinated %>% mutate(percent8089first=`80-89 first dose`/`80-89 pop`)
+vaccinated <- vaccinated %>% mutate(percent8089second=`80-89 second dose`/`80-89 pop`)
+vaccinated <- vaccinated %>% mutate(percent7079first=`70-79 first dose`/`70-79 pop`)
+vaccinated <- vaccinated %>% mutate(percent7079second=`70-79 second dose`/`70-79 pop`)
+vaccinated <- vaccinated %>% mutate(percent6069first=`60-69 first dose`/`60-69 pop`)
+vaccinated <- vaccinated %>% mutate(percent6069second=`60-69 second dose`/`60-69 pop`)
+vaccinated <- vaccinated %>% mutate(percent5059first=`50-59 first dose`/`50-59 pop`)
+vaccinated <- vaccinated %>% mutate(percent5059second=`50-59 second dose`/`50-59 pop`)
+
+vaccinated2<-vaccinated %>% select(Date,percent90first,percent90second,percent8089first,percent8089second,percent7079first,percent7079second,percent6069first,percent6069second,percent5059first,percent5059second) %>% pivot_longer(cols = starts_with("percent"),names_to = "group",values_to = "percent")
+
+# get older data
+vaccinated_per_day_2021_01_20 <- read_csv("vaccinated-per-day-2021-01-20.csv")
+#add population vaccinated$`10-19 pop`
+
+urlfile="https://raw.githubusercontent.com/dancarmoz/israel_moh_covid_dashboard_data/master/hospitalized_and_infected.csv"
+hospitalized_and_infected<-read_csv(urlfile) 
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r healthcareWorkers, echo=FALSE}
+library(ggplot2)
+
+healthcareWorkers <- ggplot(data=corona_medical_staff,aes(x=Date, y=cases))+
+    geom_point(aes(color=occupation),size=1)+
+    geom_line(aes(color=occupation),size=1)+
+    theme_bw() +
+  lims(x= as.Date(c("2020-12-01","2021-01-21")))+
+  # geom_vline(aes(xintercept=as.Date("2020-12-20") ), linetype="dotted", color = "blue", size=1.5)+
+  geom_vline(aes(xintercept=as.Date("2021-01-17") ), linetype="dotted", color = "red", size=1.5)+
+  geom_vline(aes(xintercept=as.Date("2021-01-17")-21 ), linetype="dotted", color = "yellow", size=1.5)+
+  geom_vline(aes(xintercept=as.Date("2021-01-17")-21+12 ), linetype="dotted", color = "grey", size=1.5)
+
+healthcareWorkers
+
+healthcareWorkers2 <- ggplot(data=corona_medical_staff_fromGithub,aes(x=Date, y=cases))+
+    geom_point(aes(color=group),size=1)+
+    geom_line(aes(color=group),size=1)+
+    theme_bw() 
+
+  lims(x= as.Date(c("2020-12-01","2021-01-21")))+
+  # geom_vline(aes(xintercept=as.Date("2020-12-20") ), linetype="dotted", color = "blue", size=1.5)+
+  geom_vline(aes(xintercept=as.Date("2021-01-17") ), linetype="dotted", color = "red", size=1.5)+
+  geom_vline(aes(xintercept=as.Date("2021-01-17")-21 ), linetype="dotted", color = "yellow", size=1.5)+
+  geom_vline(aes(xintercept=as.Date("2021-01-17")-21+12 ), linetype="dotted", color = "grey", size=1.5)
+
+healthcareWorkers2
+
+```
+
+```{r old people, echo=FALSE}
+library(ggplot2)
+
+oldPeople <- ggplot(data=corona_hospitalization,aes(x=Date, y=`Average age hospitalized`))+
+     geom_point(size=1)+
+     geom_line(size=1)+
+     geom_point(aes(x=Date, y=`Average age of patients with serious symptoms`),size=1,colour="red")+
+     geom_line(aes(x=Date, y=`Average age of patients with serious symptoms`),size=1,colour="red")+
+     geom_point(aes(x=Date, y=`Average age of patients with medium symptoms`),size=1,colour="blue")+
+     geom_line(aes(x=Date, y=`Average age of patients with medium symptoms`),size=1,colour="blue")+
+     geom_point(aes(x=Date, y=`Average age of patients with mild symptoms`),size=1,colour="green")+
+     geom_line(aes(x=Date, y=`Average age of patients with mild symptoms`),size=1,colour="green")+
+    theme_bw() +
+  lims(x= as.Date(c("2020-12-01","2021-01-21")))+
+  geom_vline(aes(xintercept=as.Date("2020-12-20") ), linetype="dotted", color = "blue", size=1.5)
+  # geom_vline(aes(xintercept=as.Date("2021-01-17") ), linetype="dotted", color = "red", size=1.5)+
+  # geom_vline(aes(xintercept=as.Date("2021-01-17")-21 ), linetype="dotted", color = "yellow", size=1.5)+
+  # geom_vline(aes(xintercept=as.Date("2021-01-17")-21+10 ), linetype="dotted", color = "grey", size=1.5)
+
+oldPeople
+```
+
+```{r percent of old people, echo=FALSE}
+library(ggplot2)
+
+percent_oldPeople <- ggplot(data=severe_ages_dists_relative,aes(x=`Date`, y=`severe cases`))+
+     geom_point(aes(colour=group),size=1)+
+  #   geom_line(aes(colour=group),size=1)+
+    theme_bw() +
+    geom_smooth(aes(group=group,color=group),method = "loess",span=0.3)+
+  # lims(x= as.Date(c("2020-12-01 00:00:00","2021-01-21 00:00:00")))+
+  geom_vline(aes(xintercept=as.Date("2020-12-20") ), linetype="dotted", color = "blue", size=1.5)+
+  facet_wrap(~group,scale="free")
+  # geom_vline(aes(xintercept=as.Date("2021-01-17") ), linetype="dotted", color = "red", size=1.5)+
+  # geom_vline(aes(xintercept=as.Date("2021-01-17")-21 ), linetype="dotted", color = "yellow", size=1.5)+
+  # geom_vline(aes(xintercept=as.Date("2021-01-17")-21+10 ), linetype="dotted", color = "grey", size=1.5)
+
+percent_oldPeople
+
+numbersevere <- ggplot(data=severe_ages_dists2,aes(x=`Date`, y=`severe cases`))+
+     geom_point(aes(colour=group),size=1)+
+  #   geom_line(aes(colour=group),size=1)+
+    theme_bw() +
+    geom_smooth(aes(group=group,color=group),method = "loess",span=0.3)+
+   lims(x= as.Date(c("2020-12-01 00:00:00","2021-01-21 00:00:00")))+
+  geom_vline(aes(xintercept=as.Date("2020-12-20") ), linetype="dotted", color = "blue", size=1.5)+
+   facet_wrap(~group,scale="free")
+
+numbersevere
+
+percent_vaccinated <- ggplot(data=vaccinated2,aes(x=`Date`, y=`percent`))+
+  geom_line(aes(color=group),size=1)+
+  theme_bw()+
+   facet_wrap(~group,scale="free")
+
+percent_vaccinated
+
+ #next step - combine older vaccination data with newer
+ #can we distiungish new cases from active patients?
+ #can we plot %vaccinated vs new cases?
+
+```
